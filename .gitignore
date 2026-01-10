@@ -33,6 +33,8 @@ logs/
 # Build artifacts
 dist/
 build/
+buildkit.toml
+package-manifest.json
 
 # Release notes (temporary)
 release-notes.md

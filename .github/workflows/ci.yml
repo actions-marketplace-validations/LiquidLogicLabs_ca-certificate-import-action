@@ -5,12 +5,43 @@ on:
     branches: ['**']
   pull_request:
     branches: ['**']
+  workflow_call:  # Allow CI to be called by release workflow
+  workflow_dispatch:  # Allow manual triggering
 
 permissions:
   contents: read
   pull-requests: read
 
 jobs:
-  test:
-    uses: ./.github/workflows/test.yml
+  validate:
+    if: github.event_name != 'push' || github.ref_type != 'tag'  # Skip on tag pushes (handled by release workflow)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Validate action.yml
+        run: |
+          if [ -f "action.yml" ]; then
+            echo "✓ action.yml found"
+          else
+            echo "✗ action.yml not found"
+            exit 1
+          fi
+
+      - name: Validate shell script syntax
+        run: |
+          if [ -f "install-certificate.sh" ]; then
+            chmod +x install-certificate.sh
+            bash -n install-certificate.sh
+            echo "✓ install-certificate.sh syntax valid"
+          else
+            echo "✗ install-certificate.sh not found"
+            exit 1
+          fi
+
+  test:
+    if: github.event_name != 'push' || github.ref_type != 'tag'  # Skip on tag pushes (handled by release workflow)
+    needs: validate  # Tests run after validation
+    uses: ./.github/workflows/test.yml
+    # test.yml runs: all tests for composite action

@@ -1,37 +1,26 @@
 {
   "name": "ca-certificate-import-action",
-  "version": "1.1.0",
+  "version": "1.1.3",
   "description": "GitHub Action for installing custom SSL/TLS certificates",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/LiquidLogicLabs/ca-certificate-import-action.git"
+    "url": "https://github.com/LiquidLogicLabs/git-action-ca-certificate-import.git"
   },
   "scripts": {
-    "release": "standard-version --release-as patch && git push --follow-tags origin HEAD",
-    "release:patch": "standard-version --release-as patch && git push --follow-tags origin HEAD",
-    "release:minor": "standard-version --release-as minor && git push --follow-tags origin HEAD",
-    "release:major": "standard-version --release-as major && git push --follow-tags origin HEAD",
-    "release:pre-alpha": "standard-version --prerelease alpha && git push --follow-tags origin HEAD",
-    "release:pre-beta": "standard-version --prerelease beta && git push --follow-tags origin HEAD",
-    "release:pre-rc": "standard-version --prerelease rc && git push --follow-tags origin HEAD",
-    "release:pre-dev": "standard-version --prerelease patch --prereleaseId dev && git push --follow-tags origin HEAD",
+    "release:patch": "standard-version --release-as patch --skip.changelog && git push --follow-tags",
+    "release:minor": "standard-version --release-as minor --skip.changelog && git push --follow-tags",
+    "release:major": "standard-version --release-as major --skip.changelog && git push --follow-tags",
     "build": "echo 'Build completed - action is ready for packaging'",
-    "test": "act -j test",
-    "test:local": "act -j test --local",
-    "ci:local": "act push --local",
+    "test:act": "act -W .github/workflows/test.yml --eventpath .github/workflows/.act/event-workflow_call.json",
+    "test:act:verbose": "act -W .github/workflows/test.yml --eventpath .github/workflows/.act/event-workflow_call.json -v",
+    "test:act:ci": "act -W .github/workflows/ci.yml",
+    "test:act:release": "act push --eventpath .github/workflows/.act/event-release.json",
+    "lint:act": "act -W .github/workflows/ci.yml -j validate",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
   },
   "devDependencies": {
     "standard-version": "^9.5.0"
-  },
-  "standard-version": {
-    "scripts": {
-      "precommit": "git add CHANGELOG.md package.json"
-    },
-    "skip": {
-      "tag": false
-    }
   },
   "engines": {
     "node": ">=16.0.0"
