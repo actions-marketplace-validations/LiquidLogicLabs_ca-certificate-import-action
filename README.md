@@ -1,5 +1,8 @@
 # CA Certificate Import GitHub Action
 
+[![CI](https://github.com/LiquidLogicLabs/git-action-ca-certificate-import/actions/workflows/ci.yml/badge.svg)](https://github.com/LiquidLogicLabs/git-action-ca-certificate-import/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A GitHub Action that installs custom SSL/TLS certificates into the CI/CD runner environment, enabling Docker and other tools to work with private registries and internal resources that use custom certificate authorities.
 
 ## Features
@@ -13,32 +16,33 @@ A GitHub Action that installs custom SSL/TLS certificates into the CI/CD runner 
 
 ## Usage
 
-### Quick Start
+The action **auto-detects** the certificate source type (file path, URL, or inline content), making it simple to use.
+
+### Quick Start (File Path)
 
 ```yaml
 - name: Install custom certificate
-  uses: LiquidLogicLabs/git-action-ca-certificate-import@v1
+  uses: LiquidLogicLabs/git-action-ca-certificate-import@v2
   with:
-    certificate-source: 'certs/company-ca.crt'
+    certificate: 'certs/company-ca.crt'
 ```
 
-### From URL
+### From URL (Auto-Detected)
 
 ```yaml
 - name: Install certificate from URL
-  uses: LiquidLogicLabs/git-action-ca-certificate-import@v1
+  uses: LiquidLogicLabs/git-action-ca-certificate-import@v2
   with:
-    certificate-source: 'https://pki.company.com/ca.crt'
+    certificate: 'https://pki.company.com/ca.crt'
 ```
 
-### From GitHub Secret
+### From GitHub Secret (Auto-Detected as Inline)
 
 ```yaml
 - name: Install certificate from secret
-  uses: LiquidLogicLabs/git-action-ca-certificate-import@v1
+  uses: LiquidLogicLabs/git-action-ca-certificate-import@v2
   with:
-    certificate-source: 'inline'
-    certificate-body: ${{ secrets.CUSTOM_CA_CERT }}
+    certificate: ${{ secrets.CUSTOM_CA_CERT }}
     certificate-name: 'company-ca.crt'
 ```
 
@@ -47,9 +51,9 @@ A GitHub Action that installs custom SSL/TLS certificates into the CI/CD runner 
 ```yaml
 - name: Install certificate and generate buildkit.toml
   id: install-cert
-  uses: LiquidLogicLabs/git-action-ca-certificate-import@v1
+  uses: LiquidLogicLabs/git-action-ca-certificate-import@v2
   with:
-    certificate-source: 'certs/company-ca.crt'
+    certificate: 'certs/company-ca.crt'
     generate-buildkit: 'true'
 
 - name: Use buildkit.toml for Docker builds
@@ -66,10 +70,9 @@ A GitHub Action that installs custom SSL/TLS certificates into the CI/CD runner 
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `certificate-source` | Certificate source: file path, URL, or 'inline' | Yes | - |
-| `certificate-body` | Certificate content (required when source is 'inline') | No | - |
+| `certificate` | Certificate source: auto-detects file path, URL, or inline content. See [Input Methods](#input-methods) below | Yes | - |
 | `certificate-name` | Name for certificate file | No | Auto-generated |
-| `debug` | Enable debug output | No | `false` |
+| `verbose` | Enable verbose debug logging | No | `false` |
 | `generate-buildkit` | Generate buildkit.toml configuration file | No | `false` |
 | `buildkit-runtime` | Container runtime for BuildKit (e.g., 'io.containerd.runc.v2'). Leave empty to omit runtime configuration | No | - |
 
@@ -83,11 +86,12 @@ A GitHub Action that installs custom SSL/TLS certificates into the CI/CD runner 
 
 ## How It Works
 
-1. **Acquires Certificate**: Downloads/reads certificate from specified source
-2. **Validates Format**: Ensures certificate is valid PEM format
-3. **System Installation**: Copies to `/usr/local/share/ca-certificates/` and runs `update-ca-certificates`
-4. **BuildKit Configuration** (optional): Generates `buildkit.toml` file with CA certificate settings
-5. **Reports Success**: Outputs installation path, certificate name, and buildkit.toml path
+1. **Auto-Detects Source**: Automatically detects if input is a URL, file path, or inline content
+2. **Acquires Certificate**: Downloads from URL, reads from file, or uses inline content
+3. **Validates Format**: Ensures certificate is valid PEM format
+4. **System Installation**: Copies to `/usr/local/share/ca-certificates/` and runs `update-ca-certificates`
+5. **BuildKit Configuration** (optional): Generates `buildkit.toml` file with CA certificate settings
+6. **Reports Success**: Outputs installation path, certificate name, and buildkit.toml path
 
 Once installed, the certificate is trusted by:
 - ✅ Docker (push/pull from registries with custom certs)
@@ -103,23 +107,24 @@ Once installed, the certificate is trusted by:
 
 ### Input Methods
 
-The action supports three methods for providing certificates:
+The action **auto-detects** the certificate source type - just provide the certificate and it figures out the rest!
 
-1. **Local File Path** - Reference a certificate file in the repository
+1. **Local File Path** - Reference a certificate file in the repository (auto-detected)
    ```yaml
-   certificate-source: 'certs/company-ca.crt'
+   certificate: 'certs/company-ca.crt'
    ```
 
-2. **URL** - Download certificate from a web location
+2. **URL** - Download certificate from a web location (auto-detected if starts with `http://` or `https://`)
    ```yaml
-   certificate-source: 'https://pki.company.com/ca.crt'
+   certificate: 'https://pki.company.com/ca.crt'
    ```
 
-3. **Certificate Body** - Provide certificate content directly
+3. **Inline Content** - Provide certificate content directly (auto-detected if contains `-----BEGIN CERTIFICATE-----`)
    ```yaml
-   certificate-source: 'inline'
-   certificate-body: ${{ secrets.CUSTOM_CA_CERT }}
+   certificate: ${{ secrets.CUSTOM_CA_CERT }}
    ```
+
+The action automatically detects which type you're using based on the input format - no need to specify!
 
 ### Use Cases
 
@@ -134,25 +139,41 @@ This action follows [Semantic Versioning](https://semver.org/).
 
 **Recommended usage:**
 ```yaml
-uses: LiquidLogicLabs/git-action-ca-certificate-import@v1  # Gets latest v1.x.x
+uses: LiquidLogicLabs/git-action-ca-certificate-import@v2  # Gets latest v2.x.x
 ```
 
-## 🚀 Quick Release
+**Version pinning options:**
+- `@v2` - Latest v2.x.x (major version) - **Recommended** (includes auto-detection)
+- `@v1` - Latest v1.x.x (legacy - requires certificate-source and certificate-body)
+- `@latest` - Latest stable release
+- `@v2.0.0` - Exact version
 
-```bash
-npm run release:patch      # Bug fixes
-npm run release:minor      # New features  
-npm run release:major      # Breaking changes
-```
+**Breaking Change Notice**: Version v2.0.0 introduces auto-detection. The `certificate-source` and `certificate-body` inputs have been replaced with a single `certificate` input that auto-detects the source type.
 
-See [docs/MAINTAINERS.md](docs/MAINTAINERS.md) for full release automation guide.
+## Security
+
+### Security Considerations
+
+- **Certificate Validation**: The action validates that certificates are in valid PEM format before installation
+- **System Access**: Requires `sudo` privileges to write to `/usr/local/share/ca-certificates/` and run `update-ca-certificates`
+- **Certificate Source**: Always verify the source of certificates, especially when using URLs or inline content
+- **Secrets Management**: When using inline certificates, store the certificate content in GitHub Secrets and reference via `${{ secrets.CERT_NAME }}`
+- **Network Security**: URL-based certificate downloads use standard `curl` with TLS verification enabled
+
+### Best Practices
+
+- ✅ Use GitHub Secrets for sensitive certificate content
+- ✅ Verify certificate fingerprints before installation
+- ✅ Use specific version tags (`@v1.1.3`) in production workflows
+- ✅ Regularly update to the latest stable version for security patches
+- ⚠️ Avoid committing certificates directly to repositories
+- ⚠️ Use organization-approved certificate sources only
 
 ## Documentation
 
 - 📖 [Examples](docs/EXAMPLES.md) - Comprehensive usage examples
 - 🔧 [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
-- 🛠️ [Contributing](docs/CONTRIBUTING.md) - Development guidelines
-- 👥 [Maintainers](docs/MAINTAINERS.md) - Publishing, testing, and release automation
+- 🛠️ [Development](docs/DEVELOPMENT.md) - Development setup, contributing guidelines, and release procedures
 
 ## Troubleshooting
 
@@ -160,7 +181,7 @@ Having issues? Check the [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for co
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions welcome! See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for development setup and contribution guidelines.
 
 ## License
 
